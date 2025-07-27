@@ -50,7 +50,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.9);
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 1000;
@@ -79,6 +79,10 @@
         button:hover, select:hover {
             background-color: #0056b3;
         }
+        .error {
+            color: red;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -86,18 +90,19 @@
         <div class="controls">
             <input type="file" id="fileInput" accept="image/*" multiple>
             <button onclick="toggleRandomSlideshow()">Случайный показ</button>
-            <select id="intervalSelect" onchange="updateInterval()">
+            <select id="intervalSelect">
                 <option value="2">2 секунды</option>
                 <option value="3">3 секунды</option>
                 <option value="5">5 секунд</option>
                 <option value="7">7 секунд</option>
             </select>
         </div>
+        <div class="error" id="errorMessage"></div>
         <div class="gallery" id="gallery"></div>
     </div>
 
-    <div class="fullscreen" id="fullscreen" style="display: none;">
-        <img id="fullscreenImage" src="">
+    <div class="fullscreen" id="fullscreen">
+        <img id="fullscreenImage" src="" alt="Полноэкранное изображение">
         <div class="fullscreen-controls">
             <button onclick="prevImage()">Назад</button>
             <button onclick="nextImage()">Вперед</button>
@@ -110,26 +115,58 @@
         let currentIndex = 0;
         let slideshowInterval = null;
         let isSlideshowRunning = false;
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Показ сообщения об ошибке
+        function showError(message) {
+            errorMessage.textContent = message;
+            console.error(message);
+        }
+
+        // Очистка сообщения об ошибке
+        function clearError() {
+            errorMessage.textContent = '';
+        }
 
         // Загрузка изображений
         document.getElementById('fileInput').addEventListener('change', (event) => {
+            clearError();
             const files = event.target.files;
+            if (!files || files.length === 0) {
+                showError('Не выбраны изображения');
+                return;
+            }
+
             images = [];
             const gallery = document.getElementById('gallery');
             gallery.innerHTML = '';
 
             for (let file of files) {
+                if (!file.type.startsWith('image/')) {
+                    showError(`Файл ${file.name} не является изображением`);
+                    continue;
+                }
                 const url = URL.createObjectURL(file);
                 images.push(url);
                 const img = document.createElement('img');
                 img.src = url;
+                img.alt = file.name;
+                img.onerror = () => showError(`Ошибка загрузки изображения: ${file.name}`);
                 img.onclick = () => showFullscreen(url, images.indexOf(url));
                 gallery.appendChild(img);
+            }
+
+            if (images.length === 0) {
+                showError('Не удалось загрузить изображения');
             }
         });
 
         // Полноэкранный режим
         function showFullscreen(url, index) {
+            if (!url || index < 0 || index >= images.length) {
+                showError('Ошибка: неверное изображение или индекс');
+                return;
+            }
             currentIndex = index;
             const fullscreen = document.getElementById('fullscreen');
             const fullscreenImage = document.getElementById('fullscreenImage');
@@ -143,23 +180,32 @@
             stopSlideshow();
         }
 
-        // Переключение на предыдущее изображение
+        // Предыдущее изображение
         function prevImage() {
-            if (images.length === 0) return;
+            if (images.length === 0) {
+                showError('Нет загруженных изображений');
+                return;
+            }
             currentIndex = (currentIndex - 1 + images.length) % images.length;
             document.getElementById('fullscreenImage').src = images[currentIndex];
         }
 
-        // Переключение на следующее изображение
+        // Следующее изображение
         function nextImage() {
-            if (images.length === 0) return;
+            if (images.length === 0) {
+                showError('Нет загруженных изображений');
+                return;
+            }
             currentIndex = (currentIndex + 1) % images.length;
             document.getElementById('fullscreenImage').src = images[currentIndex];
         }
 
         // Случайное изображение
         function showRandomImage() {
-            if (images.length === 0) return;
+            if (images.length === 0) {
+                showError('Нет загруженных изображений для слайдшоу');
+                return;
+            }
             currentIndex = Math.floor(Math.random() * images.length);
             document.getElementById('fullscreenImage').src = images[currentIndex];
             document.getElementById('fullscreen').style.display = 'flex';
@@ -176,9 +222,13 @@
 
         // Запуск слайдшоу
         function startSlideshow() {
-            if (images.length === 0) return;
+            if (images.length === 0) {
+                showError('Загрузите изображения перед запуском слайдшоу');
+                return;
+            }
             isSlideshowRunning = true;
             document.getElementById('fileInput').disabled = true;
+            document.getElementById('toggleSlideshow').textContent = 'Остановить показ';
             showRandomImage();
             const interval = parseInt(document.getElementById('intervalSelect').value) * 1000;
             slideshowInterval = setInterval(showRandomImage, interval);
@@ -188,24 +238,30 @@
         function stopSlideshow() {
             isSlideshowRunning = false;
             document.getElementById('fileInput').disabled = false;
+            document.getElementById('toggleSlideshow').textContent = 'Случайный показ';
             clearInterval(slideshowInterval);
         }
 
         // Обновление интервала слайдшоу
-        function updateInterval() {
+        document.getElementById('intervalSelect').addEventListener('change', () => {
             if (isSlideshowRunning) {
                 stopSlideshow();
                 startSlideshow();
             }
-        }
+        });
 
-        // Обработка клавиш для навигации
+        // Обработка клавиш
         document.addEventListener('keydown', (event) => {
             if (document.getElementById('fullscreen').style.display === 'flex') {
                 if (event.key === 'ArrowLeft') prevImage();
                 if (event.key === 'ArrowRight') nextImage();
                 if (event.key === 'Escape') exitFullscreen();
             }
+        });
+
+        // Очистка URL объектов при закрытии страницы
+        window.addEventListener('beforeunload', () => {
+            images.forEach(url => URL.revokeObjectURL(url));
         });
     </script>
 </body>
