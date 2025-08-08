@@ -1,88 +1,109 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="auto">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Галерея изображений</title>
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
+    :root{
+        --bg:#f4f4f4; --text:#111; --panel:#ffffff; --muted:#666;
+        --btn:#e9e9e9; --btn-text:#111; --btn-hover:#d9d9d9;
+        --overlay:rgba(0,0,0,0.96); --glass:rgba(255,255,255,0.14);
+        --accent:#007bff; --accent-contrast:#fff;
+        --thumb-border:#fff8; --thumb-active:#4da3ff;
     }
-    .gallery-container {
-        max-width: 1200px;
-        margin: auto;
-        padding: 15px;
-    }
-    .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        margin-bottom: 15px;
-    }
-    .gallery {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 8px;
-    }
-    .gallery img {
-        width: 100%;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 6px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        cursor: pointer;
-    }
-    .gallery img:hover {
-        transform: scale(1.03);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    /* Fullscreen */
-    .fullscreen {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.95);
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-    .fullscreen img {
-        max-width: 95%;
-        max-height: 85%;
-        transition: opacity 0.3s ease;
-    }
-    .fullscreen-controls {
-        position: absolute;
-        bottom: 20px;
-        display: flex;
-        gap: 15px;
-    }
-    .btn {
-        padding: 8px 12px;
-        font-size: 14px;
-        border: none;
-        border-radius: 4px;
-        background: rgba(255,255,255,0.2);
-        color: #fff;
-        cursor: pointer;
-        backdrop-filter: blur(4px);
-    }
-    .btn:hover {
-        background: rgba(255,255,255,0.35);
-    }
-    .error {
-        color: red;
-        text-align: center;
-    }
-    @media (min-width: 600px) {
-        .gallery img {
-            height: 150px;
+    @media (prefers-color-scheme: dark){
+        :root{
+            --bg:#0e0f11; --text:#e9e9e9; --panel:#17181b; --muted:#a0a0a0;
+            --btn:#24262b; --btn-text:#e9e9e9; --btn-hover:#2d3036;
+            --overlay:rgba(0,0,0,0.96); --glass:rgba(255,255,255,0.14);
+            --accent:#4da3ff; --accent-contrast:#000;
+            --thumb-border:#0008; --thumb-active:#4da3ff;
         }
     }
+    html[data-theme="light"] :root{
+        --bg:#f4f4f4; --text:#111; --panel:#ffffff; --muted:#666;
+        --btn:#e9e9e9; --btn-text:#111; --btn-hover:#d9d9d9;
+        --overlay:rgba(0,0,0,0.96); --glass:rgba(0,0,0,0.35);
+        --accent:#007bff; --accent-contrast:#fff;
+        --thumb-border:#fff8; --thumb-active:#007bff;
+    }
+    html[data-theme="dark"] :root{
+        --bg:#0e0f11; --text:#e9e9e9; --panel:#17181b; --muted:#a0a0a0;
+        --btn:#24262b; --btn-text:#e9e9e9; --btn-hover:#2d3036;
+        --overlay:rgba(0,0,0,0.96); --glass:rgba(255,255,255,0.14);
+        --accent:#4da3ff; --accent-contrast:#000;
+        --thumb-border:#0008; --thumb-active:#4da3ff;
+    }
+
+    *{box-sizing:border-box}
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+    .gallery-container{ max-width:1200px; margin:auto; padding:15px; }
+    .controls{
+        background:var(--panel); border-radius:10px; padding:10px;
+        display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center;
+        box-shadow:0 1px 3px rgba(0,0,0,0.1);
+    }
+    .gallery{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; margin-top:12px; }
+    .gallery img{
+        width:100%; height:120px; object-fit:cover; border-radius:8px;
+        transition:transform .18s ease, box-shadow .18s ease, opacity .2s ease; cursor:pointer; background:#0001;
+    }
+    .gallery img:hover{ transform:translateY(-1px); box-shadow:0 6px 14px rgba(0,0,0,0.18); }
+    input[type="file"]{ padding:6px 8px; background:var(--btn); color:var(--btn-text); border-radius:8px; border:1px solid transparent; }
+    .btn, select{
+        padding:8px 12px; font-size:14px; border:1px solid transparent; border-radius:8px;
+        background:var(--btn); color:var(--btn-text); cursor:pointer; transition:background .15s ease, transform .05s ease;
+    }
+    .btn:hover, select:hover{ background:var(--btn-hover); }
+    .btn:active{ transform:translateY(1px); }
+    .btn-accent{ background:var(--accent); color:var(--accent-contrast); }
+    .error{ color:#ff5a5a; text-align:center; margin-top:10px; min-height:1.2em; }
+
+    /* Fullscreen viewer */
+    .fullscreen{
+        position:fixed; inset:0; background:var(--overlay);
+        display:none; flex-direction:column; align-items:center; justify-content:center; z-index:1000; touch-action:pan-y;
+    }
+    .fullscreen img{
+        max-width:95%; max-height:75vh; transition:opacity .25s ease; opacity:0; user-select:none; -webkit-user-drag:none;
+    }
+    .fullscreen-controls{ position:absolute; bottom:64px; display:flex; gap:12px; }
+    .ctrl{
+        padding:10px 12px; font-size:16px; border:none; border-radius:10px;
+        background:var(--glass); color:#fff; cursor:pointer; backdrop-filter:blur(6px);
+    }
+    .ctrl:hover{ filter:brightness(1.1); }
+
+    /* Counter A/B */
+    .counter{
+        position:absolute; left:14px; bottom:14px; font-size:12px; color:#fff; opacity:.85;
+        padding:4px 8px; border-radius:6px; background:var(--glass); backdrop-filter:blur(6px); line-height:1; pointer-events:none; min-width:38px; text-align:center;
+    }
+
+    /* Progress bar (bottom) */
+    .progress{
+        position:absolute; left:0; right:0; bottom:0;
+        height:6px; background:rgba(255,255,255,0.08);
+    }
+    .progress__bar{
+        height:100%; width:0%; background:var(--accent); transition:width .25s ease;
+    }
+
+    /* Thumbnails strip */
+    .thumbs{
+        position:absolute; left:0; right:0; bottom:20px; /* над прогрессом */
+        display:flex; gap:6px; padding:6px 10px; overflow-x:auto;
+        scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.3) transparent;
+        -webkit-overflow-scrolling:touch; justify-content:center;
+    }
+    .thumb{
+        width:52px; height:36px; flex:0 0 auto; border-radius:6px; overflow:hidden; position:relative; cursor:pointer;
+        outline:1px solid var(--thumb-border);
+    }
+    .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .thumb.active{ outline:2px solid var(--thumb-active); box-shadow:0 0 0 2px var(--thumb-active) inset; }
+    @media (min-width:600px){ .gallery img{ height:150px; } }
 </style>
 </head>
 <body>
@@ -90,12 +111,13 @@
     <div class="controls">
         <input type="file" id="fileInput" accept="image/*" multiple>
         <button class="btn" id="toggleSlideshow">Случайный показ</button>
-        <select id="intervalSelect">
+        <select id="intervalSelect" title="Интервал показа">
             <option value="2">2 секунды</option>
             <option value="3">3 секунды</option>
-            <option value="5">5 секунд</option>
+            <option value="5" selected>5 секунд</option>
             <option value="7">7 секунд</option>
         </select>
+        <button class="btn" id="toggleTheme" title="Переключить тему">Тема: авто</button>
     </div>
     <div class="error" id="errorMessage"></div>
     <div class="gallery" id="gallery"></div>
@@ -103,103 +125,254 @@
 
 <div class="fullscreen" id="fullscreen">
     <img id="fullscreenImage" src="" alt="">
+    <div class="counter" id="counter">0/0</div>
+
+    <!-- Лента превью -->
+    <div class="thumbs" id="thumbs"></div>
+
+    <!-- Кнопки -->
     <div class="fullscreen-controls">
-        <button class="btn" onclick="prevImage()">⟨</button>
-        <button class="btn" onclick="exitFullscreen()">✕</button>
-        <button class="btn" onclick="nextImage()">⟩</button>
+        <button class="ctrl" id="prevBtn" aria-label="Предыдущее">⟨</button>
+        <button class="ctrl" id="closeBtn" aria-label="Закрыть">✕</button>
+        <button class="ctrl" id="nextBtn" aria-label="Следующее">⟩</button>
     </div>
+
+    <!-- Прогресс-бар -->
+    <div class="progress"><div class="progress__bar" id="progressBar"></div></div>
 </div>
 
 <script>
-let images = [], currentIndex = 0, slideshowInterval = null, isSlideshowRunning = false;
+let images = [];
+let currentIndex = 0;
+let slideshowInterval = null;
+let isSlideshowRunning = false;
+
+// История показов для возврата при рандоме/прыжках
+const backStack = [];
+const forwardStack = [];
 
 const errorMessage = document.getElementById('errorMessage');
 const gallery = document.getElementById('gallery');
 const fullscreen = document.getElementById('fullscreen');
 const fullscreenImage = document.getElementById('fullscreenImage');
+const counter = document.getElementById('counter');
+const toggleBtn = document.getElementById('toggleSlideshow');
+const themeBtn = document.getElementById('toggleTheme');
+const thumbs = document.getElementById('thumbs');
+const progressBar = document.getElementById('progressBar');
 
+/* ---------- Тема: авто/светлая/тёмная с запоминанием ---------- */
+(function initTheme(){
+    const saved = localStorage.getItem('gallery-theme'); // 'auto' | 'light' | 'dark'
+    setTheme(saved || 'auto');
+    themeBtn.addEventListener('click', () => {
+        const mapping = { 'auto':'light', 'light':'dark', 'dark':'auto' };
+        const current = document.documentElement.getAttribute('data-theme') || 'auto';
+        const next = mapping[current] || 'auto';
+        setTheme(next);
+        localStorage.setItem('gallery-theme', next);
+    });
+})();
+function setTheme(mode){
+    document.documentElement.setAttribute('data-theme', mode);
+    themeBtn.textContent = 'Тема: ' + (mode === 'auto' ? 'авто' : (mode === 'light' ? 'светлая' : 'тёмная'));
+}
+
+/* ---------- Утилиты ---------- */
 function showError(msg){ errorMessage.textContent = msg; }
 function clearError(){ errorMessage.textContent = ''; }
+function updateCounter(){
+    const A = images.length ? (currentIndex + 1) : 0;
+    const B = images.length;
+    counter.textContent = `${A}/${B}`;
+}
+function updateProgress(){
+    if (!images.length) return progressBar.style.width = '0%';
+    const percent = ((currentIndex + 1) / images.length) * 100;
+    progressBar.style.width = percent + '%';
+}
+function highlightActiveThumb(){
+    const nodes = thumbs.querySelectorAll('.thumb');
+    nodes.forEach((n,i)=> n.classList.toggle('active', i===currentIndex));
+    // авто-скролл к активной
+    const active = thumbs.querySelector('.thumb.active');
+    if (active) {
+        const rect = active.getBoundingClientRect();
+        const wrap = thumbs.getBoundingClientRect();
+        if (rect.left < wrap.left || rect.right > wrap.right) {
+            active.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+        }
+    }
+}
 
+/* ---------- Загрузка изображений ---------- */
 document.getElementById('fileInput').addEventListener('change', (e) => {
     clearError();
     images = [];
+    backStack.length = 0;
+    forwardStack.length = 0;
     gallery.innerHTML = '';
-    for (let file of e.target.files) {
+    thumbs.innerHTML = '';
+
+    const files = Array.from(e.target.files || []);
+    for (let file of files) {
         if (!file.type.startsWith('image/')) continue;
         const url = URL.createObjectURL(file);
         images.push(url);
+
+        // миниатюра
+        const t = document.createElement('div');
+        t.className = 'thumb';
+        const ti = document.createElement('img');
+        ti.src = url; ti.alt = file.name; ti.loading = 'lazy'; ti.decoding = 'async';
+        t.appendChild(ti);
+        t.addEventListener('click', () => jumpToIndex(images.indexOf(url)));
+        thumbs.appendChild(t);
+
+        // сетка
         const img = document.createElement('img');
-        img.src = url;
+        img.src = url; img.alt = file.name; img.loading = 'lazy'; img.decoding = 'async';
         img.onclick = () => showFullscreen(images.indexOf(url));
         gallery.appendChild(img);
     }
-    if (!images.length) showError('Не удалось загрузить изображения');
+    if (!images.length) return showError('Не удалось загрузить изображения');
+
+    // начальные метрики
+    updateCounter();
+    updateProgress();
 });
 
-function showFullscreen(index){
-    if(index < 0 || index >= images.length) return;
+/* ---------- Переходы / история ---------- */
+function goToIndex(index, {pushHistory=true, clearForward=true} = {}){
+    if (index < 0 || index >= images.length) return;
+    if (pushHistory && images.length) backStack.push(currentIndex);
+    if (clearForward) forwardStack.length = 0;
+
     currentIndex = index;
-    fullscreenImage.style.opacity = 0;
-    fullscreen.style.display = 'flex';
-    setTimeout(() => {
-        fullscreenImage.src = images[currentIndex];
-        fullscreenImage.style.opacity = 1;
-    }, 100);
+    swapFullscreenImage();
+}
+function jumpToIndex(index){
+    // прыжок по превью: сохраняем историю, очищаем forward
+    goToIndex(index, {pushHistory:true, clearForward:true});
+}
+function prevImage(){
+    if (backStack.length){
+        // шаг назад по истории
+        const prev = backStack.pop();
+        // текущий кладём в forward
+        forwardStack.push(currentIndex);
+        currentIndex = prev;
+        swapFullscreenImage(false); // без доп. пуша
+    } else {
+        // если истории нет — обычный шаг назад по кругу
+        const idx = (currentIndex - 1 + images.length) % images.length;
+        goToIndex(idx, {pushHistory:true, clearForward:true});
+    }
+}
+function nextImage(){
+    if (forwardStack.length){
+        // шаг вперёд по истории (после отката назад)
+        backStack.push(currentIndex);
+        currentIndex = forwardStack.pop();
+        swapFullscreenImage(false);
+    } else {
+        // обычный следующий (по порядку)
+        const idx = (currentIndex + 1) % images.length;
+        goToIndex(idx, {pushHistory:true, clearForward:true});
+    }
+}
+function showRandomImage(){
+    if (!images.length) return;
+    // перед рандомом — запоминаем текущий для возврата
+    if (images.length) backStack.push(currentIndex);
+    forwardStack.length = 0;
+    let rnd = Math.floor(Math.random() * images.length);
+    if (images.length > 1 && rnd === currentIndex) {
+        // чтобы не повторяться подряд
+        rnd = (rnd + 1) % images.length;
+    }
+    currentIndex = rnd;
+    swapFullscreenImage(false);
 }
 
+/* ---------- Fullscreen ---------- */
+function showFullscreen(index){
+    if (index < 0 || index >= images.length) return;
+    currentIndex = index;
+    fullscreen.style.display = 'flex';
+    fullscreenImage.style.opacity = 0;
+    fullscreenImage.src = images[currentIndex];
+    requestAnimationFrame(() => fullscreenImage.style.opacity = 1);
+    updateCounter(); updateProgress(); highlightActiveThumb();
+}
 function exitFullscreen(){
     fullscreen.style.display = 'none';
     stopSlideshow();
 }
-
-function prevImage(){
-    currentIndex = (currentIndex - 1 + images.length) % images.length;
-    showFullscreen(currentIndex);
+function swapFullscreenImage(pushHistoryUnused){
+    fullscreenImage.style.opacity = 0;
+    setTimeout(() => {
+        fullscreenImage.src = images[currentIndex];
+        fullscreenImage.onload = () => (fullscreenImage.style.opacity = 1);
+        updateCounter(); updateProgress(); highlightActiveThumb();
+    }, 110);
 }
 
-function nextImage(){
-    currentIndex = (currentIndex + 1) % images.length;
-    showFullscreen(currentIndex);
-}
+/* Клики по контролам */
+document.getElementById('prevBtn').addEventListener('click', prevImage);
+document.getElementById('nextBtn').addEventListener('click', nextImage);
+document.getElementById('closeBtn').addEventListener('click', exitFullscreen);
 
-function showRandomImage(){
-    currentIndex = Math.floor(Math.random() * images.length);
-    showFullscreen(currentIndex);
-}
-
-document.getElementById('toggleSlideshow').onclick = () => {
-    isSlideshowRunning ? stopSlideshow() : startSlideshow();
-};
-
-function startSlideshow(){
-    if (!images.length) return showError('Загрузите изображения');
-    isSlideshowRunning = true;
-    document.getElementById('toggleSlideshow').textContent = 'Остановить';
-    showRandomImage();
-    slideshowInterval = setInterval(showRandomImage, parseInt(document.getElementById('intervalSelect').value)*1000);
-}
-
-function stopSlideshow(){
-    isSlideshowRunning = false;
-    document.getElementById('toggleSlideshow').textContent = 'Случайный показ';
-    clearInterval(slideshowInterval);
-}
-
-// Закрытие по клику вне картинки
+/* Закрытие по клику по фону */
 fullscreen.addEventListener('click', (e) => {
     if (e.target === fullscreen) exitFullscreen();
 });
 
-// Свайпы для мобильных
+/* Свайпы для мобильных */
 let touchStartX = 0;
 fullscreen.addEventListener('touchstart', (e) => {
     touchStartX = e.changedTouches[0].screenX;
-});
+}, {passive:true});
 fullscreen.addEventListener('touchend', (e) => {
     let diff = e.changedTouches[0].screenX - touchStartX;
     if (diff > 50) prevImage();
     else if (diff < -50) nextImage();
+}, {passive:true});
+
+/* Клавиатура */
+document.addEventListener('keydown', (e) => {
+    if (fullscreen.style.display === 'flex') {
+        if (e.key === 'ArrowLeft') prevImage();
+        if (e.key === 'ArrowRight') nextImage();
+        if (e.key === 'Escape') exitFullscreen();
+    }
+});
+
+/* ---------- Слайдшоу (случайный показ) ---------- */
+document.getElementById('intervalSelect').addEventListener('change', () => {
+    if (isSlideshowRunning) { stopSlideshow(); startSlideshow(); }
+});
+toggleBtn.addEventListener('click', () => {
+    isSlideshowRunning ? stopSlideshow() : startSlideshow();
+});
+function startSlideshow(){
+    if (!images.length) return showError('Загрузите изображения');
+    isSlideshowRunning = true;
+    toggleBtn.textContent = 'Остановить';
+    if (fullscreen.style.display !== 'flex') showFullscreen(0);
+    showRandomImage();
+    const interval = parseInt(document.getElementById('intervalSelect').value) * 1000;
+    slideshowInterval = setInterval(showRandomImage, interval);
+}
+function stopSlideshow(){
+    isSlideshowRunning = false;
+    toggleBtn.textContent = 'Случайный показ';
+    clearInterval(slideshowInterval);
+}
+
+/* Очистка URL-объектов */
+window.addEventListener('beforeunload', () => {
+    images.forEach(url => URL.revokeObjectURL(url));
 });
 </script>
 </body>
