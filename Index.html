@@ -1,268 +1,206 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Галерея изображений</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .gallery-container {
-            max-width: 1200px;
-            width: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .controls {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Галерея изображений</title>
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+    }
+    .gallery-container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 15px;
+    }
+    .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+    }
+    .gallery img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 6px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+    }
+    .gallery img:hover {
+        transform: scale(1.03);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    /* Fullscreen */
+    .fullscreen {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.95);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .fullscreen img {
+        max-width: 95%;
+        max-height: 85%;
+        transition: opacity 0.3s ease;
+    }
+    .fullscreen-controls {
+        position: absolute;
+        bottom: 20px;
+        display: flex;
+        gap: 15px;
+    }
+    .btn {
+        padding: 8px 12px;
+        font-size: 14px;
+        border: none;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+    }
+    .btn:hover {
+        background: rgba(255,255,255,0.35);
+    }
+    .error {
+        color: red;
+        text-align: center;
+    }
+    @media (min-width: 600px) {
         .gallery img {
-            width: 100%;
             height: 150px;
-            object-fit: cover;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: transform 0.2s;
         }
-        .gallery img:hover {
-            transform: scale(1.05);
-        }
-        .fullscreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .fullscreen img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-        }
-        .fullscreen-controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        button, select, input {
-            padding: 8px 12px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            background-color: #007bff;
-            color: white;
-        }
-        button:hover, select:hover {
-            background-color: #0056b3;
-        }
-        .error {
-            color: red;
-            text-align: center;
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
-    <div class="gallery-container">
-        <div class="controls">
-            <input type="file" id="fileInput" accept="image/*" multiple>
-            <button onclick="toggleRandomSlideshow()">Случайный показ</button>
-            <select id="intervalSelect">
-                <option value="2">2 секунды</option>
-                <option value="3">3 секунды</option>
-                <option value="5">5 секунд</option>
-                <option value="7">7 секунд</option>
-            </select>
-        </div>
-        <div class="error" id="errorMessage"></div>
-        <div class="gallery" id="gallery"></div>
+<div class="gallery-container">
+    <div class="controls">
+        <input type="file" id="fileInput" accept="image/*" multiple>
+        <button class="btn" id="toggleSlideshow">Случайный показ</button>
+        <select id="intervalSelect">
+            <option value="2">2 секунды</option>
+            <option value="3">3 секунды</option>
+            <option value="5">5 секунд</option>
+            <option value="7">7 секунд</option>
+        </select>
     </div>
+    <div class="error" id="errorMessage"></div>
+    <div class="gallery" id="gallery"></div>
+</div>
 
-    <div class="fullscreen" id="fullscreen">
-        <img id="fullscreenImage" src="" alt="Полноэкранное изображение">
-        <div class="fullscreen-controls">
-            <button onclick="prevImage()">Назад</button>
-            <button onclick="nextImage()">Вперед</button>
-            <button onclick="exitFullscreen()">Закрыть</button>
-        </div>
+<div class="fullscreen" id="fullscreen">
+    <img id="fullscreenImage" src="" alt="">
+    <div class="fullscreen-controls">
+        <button class="btn" onclick="prevImage()">⟨</button>
+        <button class="btn" onclick="exitFullscreen()">✕</button>
+        <button class="btn" onclick="nextImage()">⟩</button>
     </div>
+</div>
 
-    <script>
-        let images = [];
-        let currentIndex = 0;
-        let slideshowInterval = null;
-        let isSlideshowRunning = false;
-        const errorMessage = document.getElementById('errorMessage');
+<script>
+let images = [], currentIndex = 0, slideshowInterval = null, isSlideshowRunning = false;
 
-        // Показ сообщения об ошибке
-        function showError(message) {
-            errorMessage.textContent = message;
-            console.error(message);
-        }
+const errorMessage = document.getElementById('errorMessage');
+const gallery = document.getElementById('gallery');
+const fullscreen = document.getElementById('fullscreen');
+const fullscreenImage = document.getElementById('fullscreenImage');
 
-        // Очистка сообщения об ошибке
-        function clearError() {
-            errorMessage.textContent = '';
-        }
+function showError(msg){ errorMessage.textContent = msg; }
+function clearError(){ errorMessage.textContent = ''; }
 
-        // Загрузка изображений
-        document.getElementById('fileInput').addEventListener('change', (event) => {
-            clearError();
-            const files = event.target.files;
-            if (!files || files.length === 0) {
-                showError('Не выбраны изображения');
-                return;
-            }
+document.getElementById('fileInput').addEventListener('change', (e) => {
+    clearError();
+    images = [];
+    gallery.innerHTML = '';
+    for (let file of e.target.files) {
+        if (!file.type.startsWith('image/')) continue;
+        const url = URL.createObjectURL(file);
+        images.push(url);
+        const img = document.createElement('img');
+        img.src = url;
+        img.onclick = () => showFullscreen(images.indexOf(url));
+        gallery.appendChild(img);
+    }
+    if (!images.length) showError('Не удалось загрузить изображения');
+});
 
-            images = [];
-            const gallery = document.getElementById('gallery');
-            gallery.innerHTML = '';
+function showFullscreen(index){
+    if(index < 0 || index >= images.length) return;
+    currentIndex = index;
+    fullscreenImage.style.opacity = 0;
+    fullscreen.style.display = 'flex';
+    setTimeout(() => {
+        fullscreenImage.src = images[currentIndex];
+        fullscreenImage.style.opacity = 1;
+    }, 100);
+}
 
-            for (let file of files) {
-                if (!file.type.startsWith('image/')) {
-                    showError(`Файл ${file.name} не является изображением`);
-                    continue;
-                }
-                const url = URL.createObjectURL(file);
-                images.push(url);
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = file.name;
-                img.onerror = () => showError(`Ошибка загрузки изображения: ${file.name}`);
-                img.onclick = () => showFullscreen(url, images.indexOf(url));
-                gallery.appendChild(img);
-            }
+function exitFullscreen(){
+    fullscreen.style.display = 'none';
+    stopSlideshow();
+}
 
-            if (images.length === 0) {
-                showError('Не удалось загрузить изображения');
-            }
-        });
+function prevImage(){
+    currentIndex = (currentIndex - 1 + images.length) % images.length;
+    showFullscreen(currentIndex);
+}
 
-        // Полноэкранный режим
-        function showFullscreen(url, index) {
-            if (!url || index < 0 || index >= images.length) {
-                showError('Ошибка: неверное изображение или индекс');
-                return;
-            }
-            currentIndex = index;
-            const fullscreen = document.getElementById('fullscreen');
-            const fullscreenImage = document.getElementById('fullscreenImage');
-            fullscreenImage.src = url;
-            fullscreen.style.display = 'flex';
-        }
+function nextImage(){
+    currentIndex = (currentIndex + 1) % images.length;
+    showFullscreen(currentIndex);
+}
 
-        // Закрытие полноэкранного режима
-        function exitFullscreen() {
-            document.getElementById('fullscreen').style.display = 'none';
-            stopSlideshow();
-        }
+function showRandomImage(){
+    currentIndex = Math.floor(Math.random() * images.length);
+    showFullscreen(currentIndex);
+}
 
-        // Предыдущее изображение
-        function prevImage() {
-            if (images.length === 0) {
-                showError('Нет загруженных изображений');
-                return;
-            }
-            currentIndex = (currentIndex - 1 + images.length) % images.length;
-            document.getElementById('fullscreenImage').src = images[currentIndex];
-        }
+document.getElementById('toggleSlideshow').onclick = () => {
+    isSlideshowRunning ? stopSlideshow() : startSlideshow();
+};
 
-        // Следующее изображение
-        function nextImage() {
-            if (images.length === 0) {
-                showError('Нет загруженных изображений');
-                return;
-            }
-            currentIndex = (currentIndex + 1) % images.length;
-            document.getElementById('fullscreenImage').src = images[currentIndex];
-        }
+function startSlideshow(){
+    if (!images.length) return showError('Загрузите изображения');
+    isSlideshowRunning = true;
+    document.getElementById('toggleSlideshow').textContent = 'Остановить';
+    showRandomImage();
+    slideshowInterval = setInterval(showRandomImage, parseInt(document.getElementById('intervalSelect').value)*1000);
+}
 
-        // Случайное изображение
-        function showRandomImage() {
-            if (images.length === 0) {
-                showError('Нет загруженных изображений для слайдшоу');
-                return;
-            }
-            currentIndex = Math.floor(Math.random() * images.length);
-            document.getElementById('fullscreenImage').src = images[currentIndex];
-            document.getElementById('fullscreen').style.display = 'flex';
-        }
+function stopSlideshow(){
+    isSlideshowRunning = false;
+    document.getElementById('toggleSlideshow').textContent = 'Случайный показ';
+    clearInterval(slideshowInterval);
+}
 
-        // Запуск/остановка слайдшоу
-        function toggleRandomSlideshow() {
-            if (isSlideshowRunning) {
-                stopSlideshow();
-            } else {
-                startSlideshow();
-            }
-        }
+// Закрытие по клику вне картинки
+fullscreen.addEventListener('click', (e) => {
+    if (e.target === fullscreen) exitFullscreen();
+});
 
-        // Запуск слайдшоу
-        function startSlideshow() {
-            if (images.length === 0) {
-                showError('Загрузите изображения перед запуском слайдшоу');
-                return;
-            }
-            isSlideshowRunning = true;
-            document.getElementById('fileInput').disabled = true;
-            document.getElementById('toggleSlideshow').textContent = 'Остановить показ';
-            showRandomImage();
-            const interval = parseInt(document.getElementById('intervalSelect').value) * 1000;
-            slideshowInterval = setInterval(showRandomImage, interval);
-        }
-
-        // Остановка слайдшоу
-        function stopSlideshow() {
-            isSlideshowRunning = false;
-            document.getElementById('fileInput').disabled = false;
-            document.getElementById('toggleSlideshow').textContent = 'Случайный показ';
-            clearInterval(slideshowInterval);
-        }
-
-        // Обновление интервала слайдшоу
-        document.getElementById('intervalSelect').addEventListener('change', () => {
-            if (isSlideshowRunning) {
-                stopSlideshow();
-                startSlideshow();
-            }
-        });
-
-        // Обработка клавиш
-        document.addEventListener('keydown', (event) => {
-            if (document.getElementById('fullscreen').style.display === 'flex') {
-                if (event.key === 'ArrowLeft') prevImage();
-                if (event.key === 'ArrowRight') nextImage();
-                if (event.key === 'Escape') exitFullscreen();
-            }
-        });
-
-        // Очистка URL объектов при закрытии страницы
-        window.addEventListener('beforeunload', () => {
-            images.forEach(url => URL.revokeObjectURL(url));
-        });
-    </script>
+// Свайпы для мобильных
+let touchStartX = 0;
+fullscreen.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+});
+fullscreen.addEventListener('touchend', (e) => {
+    let diff = e.changedTouches[0].screenX - touchStartX;
+    if (diff > 50) prevImage();
+    else if (diff < -50) nextImage();
+});
+</script>
 </body>
 </html>
