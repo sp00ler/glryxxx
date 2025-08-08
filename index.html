@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Галерея">
-<link rel="apple-touch-icon" href="icon-180.png"> <!-- 180x180 -->
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0e0f11">
 
@@ -20,8 +20,9 @@
         --btn:#24262b; --btn-text:#e9e9e9; --btn-hover:#2d3036;
         --overlay:rgba(0,0,0,0.96); --glass:rgba(255,255,255,0.14);
         --accent:#4da3ff; --accent-contrast:#000;
-        --thumb-w:54px; --thumb-h:38px; /* регулируется слайдером */
+        --thumb-w:54px; --thumb-h:38px;
         --thumb-border:#0008; --thumb-active:#4da3ff;
+        --danger:#ff6b6b;
     }
     html[data-theme="light"] :root{
         --bg:#f4f4f4; --text:#111; --panel:#ffffff; --muted:#666;
@@ -30,7 +31,6 @@
         --accent:#007bff; --accent-contrast:#fff;
         --thumb-border:#fff8; --thumb-active:#007bff;
     }
-
     *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
     .gallery-container{max-width:1200px;margin:auto;padding:15px;padding-bottom:calc(15px + env(safe-area-inset-bottom))}
@@ -51,9 +51,10 @@
     .btn:hover, select:hover{background:var(--btn-hover)}
     .btn:active{transform:translateY(1px)}
     .btn-accent{background:var(--accent);color:var(--accent-contrast)}
-    .error{color:#ff6b6b;text-align:center;margin-top:10px;min-height:1.2em}
+    .btn[disabled]{opacity:.5;cursor:not-allowed}
+    .error{color:var(--danger);text-align:center;margin-top:10px;min-height:1.2em}
 
-    /* Fullscreen viewer */
+    /* Fullscreen */
     .fullscreen{
         position:fixed;inset:0;background:var(--overlay);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:1000;touch-action:pan-y
     }
@@ -66,6 +67,7 @@
         padding:10px 12px;font-size:16px;border:none;border-radius:10px;background:var(--glass);color:#fff;cursor:pointer;backdrop-filter:blur(6px)
     }
     .ctrl:hover{filter:brightness(1.1)}
+    .ctrl[disabled]{opacity:.5;cursor:not-allowed}
     .counter{
         position:absolute;left:14px;bottom:14px;font-size:12px;color:#fff;opacity:.85;padding:4px 8px;border-radius:6px;background:var(--glass);backdrop-filter:blur(6px);line-height:1;pointer-events:none;min-width:38px;text-align:center
     }
@@ -85,12 +87,10 @@
     .thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .thumb.active{outline:2px solid var(--thumb-active);box-shadow:0 0 0 2px var(--thumb-active) inset}
 
-    /* settings panel */
-    .settings{
-        position:relative;display:inline-block
-    }
+    /* settings */
+    .settings{position:relative;display:inline-block}
     .settings-panel{
-        position:absolute;right:0;top:110%;background:var(--panel);border-radius:10px;padding:10px;min-width:220px;box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;z-index:10
+        position:absolute;right:0;top:110%;background:var(--panel);border-radius:10px;padding:10px;min-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;z-index:10
     }
     .settings.open .settings-panel{display:block}
     .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
@@ -100,13 +100,19 @@
     .switch input:checked{background:var(--accent)}
     .switch input::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s}
     .switch input:checked::after{left:19px}
-    input[type=range]{width:120px}
+    input[type=range]{width:140px}
 
     /* autohide */
     .autohide .fs-top, .autohide .fs-bottom, .autohide .fullscreen-controls, .autohide .counter{opacity:0;pointer-events:none;transition:opacity .2s}
     .fs-top, .fs-bottom, .fullscreen-controls, .counter{transition:opacity .2s}
 
-    @media (min-width:600px){ .gallery img{height:150px} }
+    /* toast */
+    .toast{
+        position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));
+        transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:10px 14px;border-radius:10px;
+        opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:2000
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 </style>
 </head>
 <body>
@@ -134,7 +140,7 @@
             <div class="settings-panel">
                 <div class="row">
                     <label>Размер превью</label>
-                    <input id="thumbSize" type="range" min="40" max="90" value="54">
+                    <input id="thumbSize" type="range" min="40" max="100" value="54">
                 </div>
                 <div class="row">
                     <label>Автоскрытие панелей</label>
@@ -144,8 +150,16 @@
                     <label>Таймаут, с</label>
                     <input id="autoHideTimeout" type="range" min="2" max="10" value="4">
                 </div>
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:8px 0">
+                <div class="row">
+                    <button class="btn" id="btnImport">Импорт</button>
+                    <button class="btn" id="btnExport">Экспорт</button>
+                </div>
+                <small style="color:var(--muted);display:block;margin-top:4px">FS API — на десктопе (Chrome/Edge). В Safari сработает фолбэк.</small>
             </div>
         </div>
+        <!-- Фолбэк для импорта -->
+        <input type="file" id="fallbackImport" accept="image/*" multiple style="display:none">
     </div>
 
     <div class="error" id="errorMessage"></div>
@@ -170,8 +184,11 @@
     <div class="counter" id="counter">0/0</div>
 </div>
 
+<div class="toast" id="toast">Конец показа</div>
+
 <script>
-let images = [];
+let images = [];           // массив objectURL
+let names = [];            // имена файлов (для экспорта)
 let currentIndex = 0;
 let isSlideshowRunning = false;
 let slideshowInterval = null;
@@ -180,7 +197,7 @@ let mode = localStorage.getItem('mode') || 'random'; // 'random' | 'order'
 let playlist = [];    // последовательность индексов без повторов
 let playPtr = -1;     // текущая позиция в плейлисте
 
-// История для «назад/вперёд»
+// История «назад/вперёд»
 const backStack = [];
 const forwardStack = [];
 
@@ -201,51 +218,55 @@ const settings = $('settings');
 const thumbSize = $('thumbSize');
 const autoHideToggle = $('autoHideToggle');
 const autoHideTimeout = $('autoHideTimeout');
+const toast = $('toast');
+const prevBtn = $('prevBtn');
+const nextBtn = $('nextBtn');
+const fallbackImport = $('fallbackImport');
 
 modeSwitch.value = mode;
 
-/* ---------- Тема: авто/светлая/тёмная ---------- */
+/* ---------- Тема ---------- */
 (function initTheme(){
-    const saved = localStorage.getItem('gallery-theme');
-    setTheme(saved || 'auto');
-    themeBtn.addEventListener('click', () => {
-        const mapping = { 'auto':'light', 'light':'dark', 'dark':'auto' };
-        const current = document.documentElement.getAttribute('data-theme') || 'auto';
-        const next = mapping[current] || 'auto';
-        setTheme(next);
-        localStorage.setItem('gallery-theme', next);
-    });
+  const saved = localStorage.getItem('gallery-theme');
+  setTheme(saved || 'auto');
+  themeBtn.addEventListener('click', () => {
+    const mapping = { 'auto':'light', 'light':'dark', 'dark':'auto' };
+    const current = document.documentElement.getAttribute('data-theme') || 'auto';
+    const next = mapping[current] || 'auto';
+    setTheme(next);
+    localStorage.setItem('gallery-theme', next);
+  });
 })();
 function setTheme(mode){
-    document.documentElement.setAttribute('data-theme', mode);
-    themeBtn.textContent = 'Тема: ' + (mode === 'auto' ? 'авто' : (mode === 'light' ? 'светлая' : 'тёмная'));
+  document.documentElement.setAttribute('data-theme', mode);
+  themeBtn.textContent = 'Тема: ' + (mode === 'auto' ? 'авто' : (mode === 'light' ? 'светлая' : 'тёмная'));
 }
 
 /* ---------- Настройки UI ---------- */
 thumbSize.addEventListener('input', ()=>{
-    document.documentElement.style.setProperty('--thumb-w', thumbSize.value+'px');
-    document.documentElement.style.setProperty('--thumb-h', Math.round(thumbSize.value*0.7)+'px');
+  document.documentElement.style.setProperty('--thumb-w', thumbSize.value+'px');
+  document.documentElement.style.setProperty('--thumb-h', Math.round(thumbSize.value*0.7)+'px');
 });
 autoHideToggle.addEventListener('change', saveUiPrefs);
 autoHideTimeout.addEventListener('input', saveUiPrefs);
 function saveUiPrefs(){
-    localStorage.setItem('ui-prefs', JSON.stringify({
-        autoHide: autoHideToggle.checked,
-        timeout: Number(autoHideTimeout.value),
-        thumb: Number(thumbSize.value)
-    }));
+  localStorage.setItem('ui-prefs', JSON.stringify({
+    autoHide: autoHideToggle.checked,
+    timeout: Number(autoHideTimeout.value),
+    thumb: Number(thumbSize.value)
+  }));
 }
 (function loadUiPrefs(){
-    const p = JSON.parse(localStorage.getItem('ui-prefs') || '{}');
-    if (p.thumb){ thumbSize.value = p.thumb; thumbSize.dispatchEvent(new Event('input')); }
-    if (typeof p.autoHide === 'boolean') autoHideToggle.checked = p.autoHide;
-    if (p.timeout) autoHideTimeout.value = p.timeout;
+  const p = JSON.parse(localStorage.getItem('ui-prefs') || '{}');
+  if (p.thumb){ thumbSize.value = p.thumb; thumbSize.dispatchEvent(new Event('input')); }
+  if (typeof p.autoHide === 'boolean') autoHideToggle.checked = p.autoHide;
+  if (p.timeout) autoHideTimeout.value = p.timeout;
 })();
 
 // меню настроек
 btnSettings.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    settings.classList.toggle('open');
+  e.stopPropagation();
+  settings.classList.toggle('open');
 });
 document.addEventListener('click', ()=>settings.classList.remove('open'));
 
@@ -253,162 +274,177 @@ document.addEventListener('click', ()=>settings.classList.remove('open'));
 function showError(msg){ errorMessage.textContent = msg; }
 function clearError(){ errorMessage.textContent=''; }
 function updateCounter(){
-    const A = images.length ? (currentIndex + 1) : 0;
-    const B = images.length;
-    counter.textContent = `${A}/${B}`;
+  const A = images.length ? (currentIndex + 1) : 0;
+  const B = images.length;
+  counter.textContent = `${A}/${B}`;
 }
 function updateProgress(){
-    if (!images.length) return progressBar.style.width='0%';
-    progressBar.style.width = ((currentIndex+1)/images.length*100)+'%';
+  if (!images.length) return progressBar.style.width='0%';
+  progressBar.style.width = ((currentIndex+1)/images.length*100)+'%';
 }
 function highlightActiveThumb(){
-    const nodes = thumbs.querySelectorAll('.thumb');
-    nodes.forEach((n,i)=> n.classList.toggle('active', i===currentIndex));
-    const active = thumbs.querySelector('.thumb.active');
-    if (active){
-        active.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-    }
+  const nodes = thumbs.querySelectorAll('.thumb');
+  nodes.forEach((n,i)=> n.classList.toggle('active', i===currentIndex));
+  const active = thumbs.querySelector('.thumb.active');
+  if (active){
+    active.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  }
+}
+function updateNavState(){
+  // Можно ли вперёд? либо есть forward-история, либо плейлист ещё не кончился
+  const canForward = (forwardStack.length > 0) || (playPtr < playlist.length - 1);
+  nextBtn.disabled = !canForward;
 }
 
 /* ---------- Плейлист без повторов ---------- */
 function makePlaylist(){
-    playlist = Array.from({length: images.length}, (_,i)=>i);
-    if (mode === 'random') shuffleInPlace(playlist);
-    playPtr = -1;
+  playlist = Array.from({length: images.length}, (_,i)=>i);
+  if (mode === 'random') shuffleInPlace(playlist);
+  playPtr = -1;
+  updateNavState();
 }
 function shuffleInPlace(a){
-    for(let i=a.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [a[i],a[j]]=[a[j],a[i]];
-    }
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
 }
 function nextFromPlaylist(){
-    if (playPtr+1 >= playlist.length) return null; // конец
-    playPtr++;
-    return playlist[playPtr];
+  if (playPtr+1 >= playlist.length) return null;
+  playPtr++;
+  return playlist[playPtr];
 }
 function prevFromHistory(){
-    if (backStack.length){
-        const prev = backStack.pop();
-        forwardStack.push(currentIndex);
-        return prev;
-    }
-    return null;
+  if (backStack.length){
+    const prev = backStack.pop();
+    forwardStack.push(currentIndex);
+    return prev;
+  }
+  return null;
 }
 
-/* ---------- Загрузка изображений ---------- */
+/* ---------- Загрузка (input) ---------- */
 $('fileInput').addEventListener('change', (e) => {
-    clearError();
-    images = [];
-    backStack.length = 0; forwardStack.length = 0;
-    gallery.innerHTML = ''; thumbs.innerHTML = '';
-
-    const files = Array.from(e.target.files || []);
-    for (let file of files) {
-        if (!file.type.startsWith('image/')) continue;
-        const url = URL.createObjectURL(file);
-        images.push(url);
-
-        const t = document.createElement('div');
-        t.className='thumb';
-        const ti=document.createElement('img');
-        ti.src=url; ti.alt=file.name; ti.loading='lazy'; ti.decoding='async';
-        t.appendChild(ti);
-        t.addEventListener('click', ()=> {
-            // прыжок: сохраняем историю и чистим forward
-            backStack.push(currentIndex);
-            forwardStack.length = 0;
-            currentIndex = images.indexOf(url);
-            // подогнать плейлист так, чтобы playPtr указывал на текущий
-            playPtr = playlist.indexOf(currentIndex);
-            swapFullscreenImage(false);
-        });
-        thumbs.appendChild(t);
-
-        const img = document.createElement('img');
-        img.src=url; img.alt=file.name; img.loading='lazy'; img.decoding='async';
-        img.onclick=()=>showFullscreen(images.indexOf(url));
-        gallery.appendChild(img);
-    }
-    if (!images.length) return showError('Не удалось загрузить изображения');
-
-    makePlaylist(); // новый список без повторов
-    updateCounter(); updateProgress();
+  loadFilesFromFileList(e.target.files);
 });
+function loadFilesFromFileList(fileList){
+  clearError();
+  // очистка
+  images.forEach(u=>URL.revokeObjectURL(u));
+  images = []; names = [];
+  backStack.length = 0; forwardStack.length = 0;
+  gallery.innerHTML = ''; thumbs.innerHTML = '';
+
+  const files = Array.from(fileList || []);
+  for (let file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    const url = URL.createObjectURL(file);
+    images.push(url);
+    names.push(file.name);
+
+    const t = document.createElement('div');
+    t.className='thumb';
+    const ti=document.createElement('img');
+    ti.src=url; ti.alt=file.name; ti.loading='lazy'; ti.decoding='async';
+    t.appendChild(ti);
+    t.addEventListener('click', ()=> {
+      backStack.push(currentIndex);
+      forwardStack.length = 0;
+      currentIndex = images.indexOf(url);
+      playPtr = playlist.indexOf(currentIndex);
+      swapFullscreenImage(false);
+    });
+    thumbs.appendChild(t);
+
+    const img = document.createElement('img');
+    img.src=url; img.alt=file.name; img.loading='lazy'; img.decoding='async';
+    img.onclick=()=>showFullscreen(images.indexOf(url));
+    gallery.appendChild(img);
+  }
+  if (!images.length) return showError('Не удалось загрузить изображения');
+
+  makePlaylist();
+  updateCounter(); updateProgress(); updateNavState();
+}
 
 /* ---------- Fullscreen ---------- */
 function showFullscreen(index){
-    if (index<0 || index>=images.length) return;
-    currentIndex = index;
-    // выставим playPtr на текущий индекс в плейлисте (если пользователь открыл вручную)
-    playPtr = playlist.indexOf(currentIndex);
-    fullscreen.style.display='flex';
-    fullscreenImage.style.opacity=0;
-    fullscreenImage.src = images[currentIndex];
-    requestAnimationFrame(()=> fullscreenImage.style.opacity=1);
-    updateCounter(); updateProgress(); highlightActiveThumb();
-    wakeUi();
+  if (index<0 || index>=images.length) return;
+  currentIndex = index;
+  playPtr = playlist.indexOf(currentIndex);
+  fullscreen.style.display='flex';
+  fullscreenImage.style.opacity=0;
+  fullscreenImage.src = images[currentIndex];
+  requestAnimationFrame(()=> fullscreenImage.style.opacity=1);
+  updateCounter(); updateProgress(); highlightActiveThumb(); updateNavState();
+  wakeUi();
 }
 function exitFullscreen(){
-    fullscreen.style.display='none';
-    stopSlideshow();
+  fullscreen.style.display='none';
+  stopSlideshow();
 }
 function swapFullscreenImage(){
-    fullscreenImage.style.opacity=0;
-    setTimeout(()=>{
-        fullscreenImage.src = images[currentIndex];
-        fullscreenImage.onload = ()=> (fullscreenImage.style.opacity=1);
-        updateCounter(); updateProgress(); highlightActiveThumb();
-    },110);
+  fullscreenImage.style.opacity=0;
+  setTimeout(()=>{
+    fullscreenImage.src = images[currentIndex];
+    fullscreenImage.onload = ()=> (fullscreenImage.style.opacity=1);
+    updateCounter(); updateProgress(); highlightActiveThumb(); updateNavState();
+  },110);
 }
 
 /* ---------- Навигация ---------- */
-$('prevBtn').addEventListener('click', ()=> {
-    const prev = prevFromHistory();
-    if (prev!==null){
-        currentIndex = prev;
-        playPtr = playlist.indexOf(currentIndex);
-        swapFullscreenImage();
-    } else {
-        // если истории нет — просто шаг назад по плейлисту (без зацикливания)
-        if (playPtr>0){
-            playPtr--;
-            currentIndex = playlist[playPtr];
-            swapFullscreenImage();
-        }
+prevBtn.addEventListener('click', ()=> {
+  const prev = prevFromHistory();
+  if (prev!==null){
+    currentIndex = prev;
+    playPtr = playlist.indexOf(currentIndex);
+    swapFullscreenImage();
+  } else {
+    if (playPtr>0){
+      playPtr--;
+      currentIndex = playlist[playPtr];
+      swapFullscreenImage();
     }
-    wakeUi();
+  }
+  wakeUi();
 });
-$('nextBtn').addEventListener('click', ()=> {
-    // ручной «вперёд» идёт по плейлисту, без повторов и без круга
+nextBtn.addEventListener('click', ()=> {
+  if (forwardStack.length){
+    backStack.push(currentIndex);
+    currentIndex = forwardStack.pop();
+    playPtr = playlist.indexOf(currentIndex);
+    swapFullscreenImage();
+  } else {
     const next = nextFromPlaylist();
-    if (next===null) {
-        stopSlideshow(true);
-        return;
+    if (next===null){
+      showToast('Конец показа');
+      updateNavState();
+      return;
     }
     backStack.push(currentIndex);
     forwardStack.length = 0;
     currentIndex = next;
     swapFullscreenImage();
-    wakeUi();
+  }
+  wakeUi();
 });
 $('closeBtn').addEventListener('click', exitFullscreen);
 
 document.addEventListener('keydown', (e)=>{
-    if (fullscreen.style.display==='flex'){
-        if (e.key==='ArrowLeft') $('prevBtn').click();
-        if (e.key==='ArrowRight') $('nextBtn').click();
-        if (e.key==='Escape') exitFullscreen();
-    }
+  if (fullscreen.style.display==='flex'){
+    if (e.key==='ArrowLeft') prevBtn.click();
+    if (e.key==='ArrowRight') nextBtn.click();
+    if (e.key==='Escape') exitFullscreen();
+  }
 });
 
-/* Свайпы для мобильных */
+/* Свайпы */
 let touchStartX=0;
 fullscreen.addEventListener('touchstart', (e)=>{ touchStartX = e.changedTouches[0].screenX; wakeUi(); }, {passive:true});
 fullscreen.addEventListener('touchend', (e)=>{
-    let diff = e.changedTouches[0].screenX - touchStartX;
-    if (diff>50) $('prevBtn').click();
-    else if (diff<-50) $('nextBtn').click();
+  let diff = e.changedTouches[0].screenX - touchStartX;
+  if (diff>50) prevBtn.click();
+  else if (diff<-50) nextBtn.click();
 }, {passive:true});
 
 /* Клик по фону для закрытия */
@@ -416,76 +452,137 @@ fullscreen.addEventListener('click', (e)=>{ if (e.target===fullscreen) exitFulls
 
 /* ---------- Слайдшоу ---------- */
 $('intervalSelect').addEventListener('change', ()=>{
-    if (isSlideshowRunning){ stopSlideshow(); startSlideshow(); }
+  if (isSlideshowRunning){ stopSlideshow(); startSlideshow(); }
 });
 toggleBtn.addEventListener('click', ()=>{
-    isSlideshowRunning ? stopSlideshow() : startSlideshow();
+  isSlideshowRunning ? stopSlideshow() : startSlideshow();
 });
 modeSwitch.addEventListener('change', ()=>{
-    mode = modeSwitch.value;
-    localStorage.setItem('mode', mode);
-    makePlaylist();
-    // если открыто, синхронизируем указатель с текущим
-    playPtr = playlist.indexOf(currentIndex);
+  mode = modeSwitch.value;
+  localStorage.setItem('mode', mode);
+  makePlaylist();
+  playPtr = playlist.indexOf(currentIndex);
+  updateNavState();
 });
 
 function startSlideshow(){
-    if (!images.length) return showError('Загрузите изображения');
-    if (fullscreen.style.display!=='flex') showFullscreen(0);
-    isSlideshowRunning = true;
-    toggleBtn.textContent='Стоп';
-    // если плейлист закончился — пересоберём
-    if (playPtr >= playlist.length-1) makePlaylist(), playPtr=-1;
+  if (!images.length) return showError('Загрузите изображения');
+  if (fullscreen.style.display!=='flex') showFullscreen(0);
+  isSlideshowRunning = true;
+  toggleBtn.textContent='Стоп';
+  if (playPtr >= playlist.length-1) makePlaylist(), playPtr=-1;
 
-    const step = ()=>{
-        const next = nextFromPlaylist();
-        if (next===null){ // достигли конца — стоп, без круга
-            stopSlideshow(true);
-            return;
-        }
-        backStack.push(currentIndex);
-        forwardStack.length=0;
-        currentIndex = next;
-        swapFullscreenImage();
-    };
-    step(); // сразу показать первый шаг
-    const interval = parseInt($('intervalSelect').value)*1000;
-    slideshowInterval = setInterval(step, interval);
+  const step = ()=>{
+    const next = nextFromPlaylist();
+    if (next===null){
+      stopSlideshow(true);
+      showToast('Конец показа');
+      updateNavState();
+      return;
+    }
+    backStack.push(currentIndex);
+    forwardStack.length=0;
+    currentIndex = next;
+    swapFullscreenImage();
+  };
+  step();
+  const interval = parseInt($('intervalSelect').value)*1000;
+  slideshowInterval = setInterval(step, interval);
 }
 function stopSlideshow(end=false){
-    isSlideshowRunning=false;
-    toggleBtn.textContent='Старт';
-    clearInterval(slideshowInterval);
-    if (end){
-        // мягкое уведомление — можно заменить на тост
-        counter.textContent += ' • конец';
-        wakeUi();
-    }
+  isSlideshowRunning=false;
+  toggleBtn.textContent='Старт';
+  clearInterval(slideshowInterval);
 }
 
-/* ---------- Автоскрытие панелей в fullscreen ---------- */
+/* ---------- Автоскрытие панелей ---------- */
 let hideTimer = null;
 function scheduleHide(){
-    if (!autoHideToggle.checked) return;
-    clearTimeout(hideTimer);
-    const ms = Number(autoHideTimeout.value)*1000;
-    hideTimer = setTimeout(()=> fullscreen.classList.add('autohide'), ms);
+  if (!autoHideToggle.checked) return;
+  clearTimeout(hideTimer);
+  const ms = Number(autoHideTimeout.value)*1000;
+  hideTimer = setTimeout(()=> fullscreen.classList.add('autohide'), ms);
 }
 function wakeUi(){
-    fullscreen.classList.remove('autohide');
-    scheduleHide();
+  fullscreen.classList.remove('autohide');
+  scheduleHide();
 }
-// любое движение/тап в зоне fullscreen — разбудить UI
 ['mousemove','touchstart','click'].forEach(ev=>{
-    fullscreen.addEventListener(ev, ()=>wakeUi(), {passive:true});
+  fullscreen.addEventListener(ev, ()=>wakeUi(), {passive:true});
 });
 
-/* ---------- Очистка URL ---------- */
-window.addEventListener('beforeunload', ()=> images.forEach(u=>URL.revokeObjectURL(u)));
+/* ---------- Тост ---------- */
+function showToast(text='Готово', ms=2200){
+  toast.textContent = text;
+  toast.classList.add('show');
+  setTimeout(()=> toast.classList.remove('show'), ms);
+}
+
+/* ---------- Импорт/Экспорт ---------- */
+const hasFS = !!(window.showOpenFilePicker && window.showSaveFilePicker);
+
+// Импорт
+$('btnImport').addEventListener('click', async ()=>{
+  if (hasFS){
+    try{
+      const handles = await window.showOpenFilePicker({
+        multiple:true,
+        types:[{description:'Images', accept:{'image/*':['.png','.jpg','.jpeg','.webp','.gif','.bmp','.avif']}}]
+      });
+      const files = [];
+      for (const h of handles){
+        const f = await h.getFile();
+        files.push(f);
+      }
+      loadFilesFromFileList(files);
+      showToast(`Импортировано: ${files.length}`);
+    }catch(e){ /* отменили — молчим */ }
+  } else {
+    // фолбэк — обычный input
+    fallbackImport.click();
+  }
+});
+fallbackImport.addEventListener('change', (e)=>{
+  loadFilesFromFileList(e.target.files);
+  showToast(`Импортировано: ${e.target.files.length}`);
+});
+
+// Экспорт (плейлист + имена)
+$('btnExport').addEventListener('click', async ()=>{
+  const payload = {
+    mode,
+    order: playlist,          // текущий порядок индексов
+    names,                    // имена файлов (для справки)
+    currentIndex,
+    playPtr
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+
+  if (hasFS){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'gallery-playlist.json',
+        types:[{description:'JSON', accept:{'application/json':['.json']}}]
+      });
+      const w = await handle.createWritable();
+      await w.write(blob); await w.close();
+      showToast('Экспортировано');
+    }catch(e){ /* отменили */ }
+  } else {
+    // фолбэк — скачать как файл
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'gallery-playlist.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=> URL.revokeObjectURL(a.href), 1000);
+    showToast('Экспортировано');
+  }
+});
 </script>
 
 <script>
-// Регистрация service worker (для A2HS/офлайн оболочки)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', ()=> {
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
